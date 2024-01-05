@@ -21,11 +21,18 @@ using namespace std;
 int main()
 {
     string line;
-    ifstream file("C:\\users\\sg\\Downloads\\test-fio-small");
+    ifstream file("/home/lemonos22/tlc/test-fio-small");
+    if (file.fail()){
+        return -1;
+    }
+    else{
+        printf("succed");
+    }
     //stringstream ss;
 
     int logical = 8;//GB
     int physical = 8;//GiB
+    
     int blocksize = 4;//MB
     int pagesize = 4;//KB
 
@@ -38,28 +45,39 @@ int main()
     int lba;
     int iosize;
     int streamnumber;
-    //for (int i = 0; i < 10000000; ++i) {
-    //    file >> timestamp;
-    //    file >> iotype;
-    //    file >> lba;
-    //    file >> iosize;
-    //    file >> streamnumber;
-    //    disk1.io(timestamp, iotype, lba, iosize, streamnumber);
-    //    //cout << timestamp << " " << iotype << " " << lba << " " << iosize << streamnumber << endl;
-    //    //disk1.summary();
-    //    //disk1.io(timestamp, iotype, lba, iosize, streamnumber);
-    //    //disk1.summary();
-
-    //}
-    for (int j = 0; j < 5; ++j) {
-        for (int i = 0; i < 1953125;++i) {
-            disk1.io("1", 1, i, 4096, 1);
-            
-        }
-        for (int i = 1953125; i > 0; --i) {
-            disk1.io("1", 1, 1, 4096, 1);
-        }
+    // for (int i = 0; i < 100; ++i)
+    int linenum=0;
+    int loop=0;
+    while(!file.eof()) {
+       file >> timestamp;
+       file >> iotype;
+       file >> lba;
+       file >> iosize;
+       file >> streamnumber;
+       
+    //    cout << timestamp << " " << iotype << " " << lba << " " << iosize << streamnumber << endl;
+       disk1.io(timestamp, iotype, lba, iosize, streamnumber);
+       //disk1.summary();
+       //disk1.io(timestamp, iotype, lba, iosize, streamnumber);
+       //disk1.summary();
+       linenum++;
+       if (linenum%100000==0){
+        printf("loop %d\n",loop);
+        linenum=0;
+        loop++;
+        disk1.summary();
+       }
     }
+    printf("linenum %d loop %d\n",linenum,loop);
+    // for (int j = 0; j < 5; ++j) {
+    //     for (int i = 0; i < 1953125;++i) {
+    //         disk1.io("1", 1, i, 4096, 1);
+            
+    //     }
+    //     for (int i = 1953125; i > 0; --i) {
+    //         disk1.io("1", 1, 1, 4096, 1);
+    //     }
+    // }
 
  /*   for (int i = 0; i < 2000000; ++i) {
         disk1.io("1", 1, 1, 4096, 0);

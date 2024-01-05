@@ -94,10 +94,21 @@ int DISK::write(int lba, int iosize) {
         totalrequestedwrite++;
         tmpwrite++;
         tmpreqeustedwrite++;
+        
         int ppn = translate(lba);
+        int newppn=_rwrite(lba);//maybe gc
+        if (lba>logicalpages){
+            printf("panic! lba>logicalpages\n");
+        }
+        if(newppn!=translate(lba)){
+            printf("panic!\n");
 
-        int newppn=_rwrite(lba);
-        bitmap[newppn] = lba;
+        }
+        bitmap[newppn] = lba;//이게 문제가 될수도
+        // if (lba==7815170){
+        //     printf("panic! what the\n");
+        //     exit(1);
+        // }
         if (ppn >-1) {
             invalidate(ppn);
         }
@@ -143,6 +154,7 @@ int DISK::_rwrite(int lba) {//write and update mappingtable and find next
     }
     
     
+    
     return ppn;
 }
 
@@ -167,12 +179,22 @@ int DISK::findnext() {
 }
 
 void DISK::updatetable(int lba, int ppn) {
+    if (lba>logicalpages){
+        printf("panic updatetable wrong lba");
+        exit(1);
+    }
     mappingtable[lba] = ppn;
 }
 
 
 int DISK::invalidate(int ppn) {
-
+    // if (ppn==1841){
+    //     printf("dfasdf");
+        
+    // }
+    if (bitmap[ppn]==-2){
+        return 0;
+    }
     bitmap[ppn] = -1;
     return 0;
 }
@@ -210,14 +232,15 @@ int DISK::gc() {
         int lba = 0;
         for (int i = 0; i < pageperblock; ++i) {
             lba = bitmap[ppn];
-            if (lba > 0) {
+            if (lba >= 0) {
                 //io_read(ppn);
                 newppn=_rwrite(lba);
                 updatetable(lba, newppn);
-                if (findnext() < 0) {
-                    printf("panic gc findnext\n");
-                    exit(1);
-                }
+                bitmap[newppn]=lba;//todo 이거를 rwrite안으로?
+                // if (findnext() < 0) {
+                //     printf("panic gc findnext\n");
+                //     exit(1);
+                // }
             }
             ppn++;
         }
@@ -229,7 +252,8 @@ int DISK::gc() {
             bitmap[ppn] = -2;
             ppn++;
         }
-        nextgc++;
+        nextgc = (nextgc + 1) % blocknum;
+        // nextgc++;
     }
     printf("gcend=================================\n");
     summary();
