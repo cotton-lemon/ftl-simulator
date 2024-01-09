@@ -113,7 +113,7 @@ int DISK::write(int lba, int iosize) {
 
         //totalwrite++;
         totalrequestedwrite++;
-        tmpwrite++;
+        // tmpwrite++;
         tmpreqeustedwrite++;
         
         int ppn = translate(lba);
@@ -153,6 +153,7 @@ int DISK::write(int lba, int iosize) {
 
 int DISK::_rwrite(int lba) {//write and update mappingtable and find next
     totalwrite++;
+    tmpwrite++;
     //cout << "offset " << offset << endl;
 
     validpage[currentblock]+=1;
@@ -279,8 +280,10 @@ int DISK::gc() {
             printf("panic! wrong validpage num\n");
             exit(1);
         }
+        tmpvalid+=validpagenum;
         freeblock[nextgc] = 0;
         wear[nextgc]+=1;
+        tmperase+=1;
         ppn = nextgc * pageperblock;
         freeblocknum++;
         for (int i = 0; i < pageperblock; ++i) {
@@ -341,7 +344,24 @@ int DISK::needgc() {
 }
 
 int DISK::summary() {
-    printf("totalwrite %d requestwrite %d totalerase %d freeblock %d usinglba %d\n", totalwrite, totalrequestedwrite, totalerase, freeblocknum, usinglba);
+    // printf("totalwrite %d requestwrite %d totalerase %d freeblock %d usinglba %d\n", totalwrite, totalrequestedwrite, totalerase, freeblocknum, usinglba);
+    // return 0;
+    // [Progress: 8GiB] WAF: 1.012, TMP_WAF: 1.024, Utilization: 1.000
+// GROUP 0[2046]: 0.02 (ERASE: 1030)
+    printf("[Progress: %d GiB] WAF: %.3f, TMP_WAF: %.3f, Utilization: %.3f\n" ,totalrequestedwrite*pagesize/(1024*1024),1.*totalwrite/totalrequestedwrite,1.*tmpwrite/tmpreqeustedwrite,1.*usinglba/logicalpages);
+    printf("GROUP 0[%d]:%.2f  (ERASE: %d)\n",blocknum-freeblocknum,1.*tmpvalid/(tmperase*pageperblock),tmperase);
+    // tmpwrite=0;
+    // tmpreqeustedwrite=0;
+    // tmperase=0;
+    // tmpvalid=0;
+    return 0;
+}
+
+int DISK::resetsummary(){
+    tmpwrite=0;
+    tmpreqeustedwrite=0;
+    tmperase=0;
+    tmpvalid=0;
     return 0;
 }
 //class Block {

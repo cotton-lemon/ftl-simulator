@@ -62,11 +62,15 @@ int main()
        //disk1.io(timestamp, iotype, lba, iosize, streamnumber);
        //disk1.summary();
        linenum++;
-       if (linenum%100000==0){
+       if (linenum%(1<<21)==0){
         printf("loop %d\n",loop);
         linenum=0;
         loop++;
         disk1.summary();
+        // disk1.resetsummary();
+       }
+       if (linenum%((1<<19)*25)==0){
+        disk1.resetsummary();
        }
     }
     printf("linenum %d loop %d\n",linenum,loop);

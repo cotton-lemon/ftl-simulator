@@ -15,6 +15,7 @@ class DISK {
 public:
     int io(string timestamp, int iotype, int lba, int iosize, int streamnumber);
     int summary();
+    int resetsummary();
     DISK(int logical, int physical, int block, int page);
 
 private:
@@ -24,6 +25,8 @@ private:
     int totalrequestedwrite = 0;
     int tmpwrite = 0;
     int tmpreqeustedwrite = 0;
+    int tmperase=0;
+    long long tmpvalid=0;
     int totalerase = 0;
     int freeblocknum;
     int usinglba = 0;//
