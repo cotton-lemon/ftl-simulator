@@ -1,5 +1,7 @@
 #include "disk.h"
 
+
+//todo validpage 관리
 DISK::DISK(int logical, int physical, int block, int page) {
     logicalsize = logical;
     physicalsize = physical;
@@ -15,13 +17,17 @@ DISK::DISK(int logical, int physical, int block, int page) {
     bitmap = new int[physicalpages] {0,};
     //fill_n(mappingtable, physicalpages, -2);
     //fill(mappingtable, mappingtable + physicalpages-1, -2);
+    validpage=new int[blocknum]{0,};
+    // de_bitmap = new int[physicalpages] {0,};
     for (int q = 0; q < physicalpages; ++q) {
         bitmap[q] = -2;
     }
-    freeblock = new bool[blocknum] {1};
-    for (int q = 0; q < blocknum; ++q) {
-        freeblock[q] = 1;
-    }
+    blocktime = new int[blocknum]{0,};
+    wear= new int[blocknum]{0,};
+    freeblock = new int[blocknum]{0,};
+    // for (int q = 0; q < blocknum; ++q) {
+    //     freeblock[q] = 1;
+    // }
     freeblocknum = blocknum;
     currentblock = 0;
     offset = 0;
@@ -47,6 +53,21 @@ int DISK::io(string timestamp, int iotype, int lba, int iosize, int streamnumber
         cout << "ERROR not a valid io type\n";
         return -1;
     }
+    // int pp=0;
+    // for (int block=0;block<2048;++block){
+    //     int valid=0;
+    //     for (int k=0;k<pageperblock;++k){
+    //         if (bitmap[pp]>=0){
+    //             valid+=1;
+    //         }
+    //         ++pp;
+    //     }
+    //     if ((valid!= validpage[block])&&(block!=currentblock)){
+    //         printf("panic! validpage wrong block: %d valid: %d validpage[block]%d\n",block ,valid,validpage[block]);
+    //         pp+=0;
+
+    //     }
+    // }
     return 0;
 }
 
@@ -104,7 +125,7 @@ int DISK::write(int lba, int iosize) {
             printf("panic!\n");
 
         }
-        bitmap[newppn] = lba;//이게 문제가 될수도
+        // bitmap[newppn] = lba;//이게 문제가 될수도
         // if (lba==7815170){
         //     printf("panic! what the\n");
         //     exit(1);
@@ -133,21 +154,31 @@ int DISK::write(int lba, int iosize) {
 int DISK::_rwrite(int lba) {//write and update mappingtable and find next
     totalwrite++;
     //cout << "offset " << offset << endl;
+
+    validpage[currentblock]+=1;
     if (offset == 0) {//start usin new block
         //cout << "offsetset0";
         freeblocknum -= 1;
-        freeblock[currentblock] = 0;
+        // freeblock[currentblock] = 0;
     }
     int ppn = currentblock * pageperblock + offset;
     //io_write(ppn);
+
     if (bitmap[ppn] != -2) {
         printf("panic! _rwrite\n");
         printf("ppn %d lba %d\n",ppn, bitmap[ppn]);
         exit(1);
     }
+    bitmap[ppn]=lba;
+    // de_bitmap[ppn]=lba;
+    if (lba<0){
+        printf("panic!\n");
+        exit(1);
+    }
     updatetable(lba, ppn);
     if (findnext() < 0) {
         printf("rwrite find next fail\n");
+        exit(1);
         summary();
         gc();
         findnext();
@@ -163,14 +194,15 @@ int DISK::findnext() {
     if (offset < pageperblock) {
         return 0;
     }
-    freeblock[currentblock] = 0;
+    freeblock[currentblock] = totalwrite;
+    // blocktime[currentblock]=totalwrite;
     offset = 0;
     //printf("page per block %d\n", pageperblock);
-    printf("finding new block %d\n", currentblock);
+    // printf("finding new block %d\n", currentblock);
     for (int i = 0; i < physicalpages; ++i) {
         currentblock = (currentblock + 1) % blocknum;
-        if (freeblock[currentblock] == 1) {
-            printf("using new block %d\n", currentblock);
+        if (freeblock[currentblock] == 0) {
+            // printf("using new block %d\n", currentblock);
             return 0;
         }
     }
@@ -193,9 +225,16 @@ int DISK::invalidate(int ppn) {
         
     // }
     if (bitmap[ppn]==-2){
+        printf("panic! invalidate freepage\n");
+        exit(1);
         return 0;
     }
+    if (bitmap[ppn]<0){
+        printf("whatthe\n");
+        exit(1);
+    }
     bitmap[ppn] = -1;
+    validpage[ppn/pageperblock]-=1;
     return 0;
 }
 int DISK::translate(int lba) {
@@ -203,40 +242,32 @@ int DISK::translate(int lba) {
 }
 
 int DISK::gc() {
-    printf("gc start===========================================\n");
-    printf("gc next %d\n", nextgc);
-    summary();
-    //todo
-    // 
-    //findvictime
-    //copy valid
-    //erase
-    //ppn = currentblock * pageperblock + offset;
-
-
-
-    //todo
-    // need to distinguish using block
-    //freeblock?
-    //timestamp?
-    //int blockidx = 0;//nextgcblock으로 class변수 선언하면 fifo
+    // printf("gc start===========================================\n");
+ 
     while (needgc()) {
         //printf("while\n");
-        if (freeblock[nextgc] == 1 || nextgc==currentblock) {
-            nextgc = (nextgc + 1) % blocknum;
-            continue;
-        }
-        printf("gc block : %d\n", nextgc);
+        // while(true){
+        // if (freeblock[nextgc] == 1 || nextgc==currentblock) {
+        //     nextgc = (nextgc + 1) % blocknum;
+        //     continue;
+        // }
+        // break;
+        // }
+        // gcpolicy0();
+        gcpolicy1();
+        // printf("gc block : %d\n", nextgc);
         int ppn = nextgc * pageperblock;
         int newppn = 0;
         int lba = 0;
+        int validpagenum=0;
         for (int i = 0; i < pageperblock; ++i) {
             lba = bitmap[ppn];
             if (lba >= 0) {
+                validpagenum+=1;
                 //io_read(ppn);
                 newppn=_rwrite(lba);
                 updatetable(lba, newppn);
-                bitmap[newppn]=lba;//todo 이거를 rwrite안으로?
+                
                 // if (findnext() < 0) {
                 //     printf("panic gc findnext\n");
                 //     exit(1);
@@ -244,23 +275,67 @@ int DISK::gc() {
             }
             ppn++;
         }
-        printf("gcccc\n");
-        freeblock[nextgc] = 1;
+        if (validpage[nextgc]!=validpagenum){
+            printf("panic! wrong validpage num\n");
+            exit(1);
+        }
+        freeblock[nextgc] = 0;
+        wear[nextgc]+=1;
         ppn = nextgc * pageperblock;
         freeblocknum++;
         for (int i = 0; i < pageperblock; ++i) {
             bitmap[ppn] = -2;
             ppn++;
         }
+
+        validpage[nextgc]=0;
         nextgc = (nextgc + 1) % blocknum;
         // nextgc++;
+        if (needgc()){
+            printf("needgc again %d\n",nextgc);
+        }
     }
-    printf("gcend=================================\n");
-    summary();
+    // printf("gcend=================================\n");
+    // summary();
     //exit(1);
+    // int pp=0;
+    // for (int block=0;block<2048;++block){
+    //     int valid=0;
+    //     for (int k=0;k<pageperblock;++k){
+    //         if (bitmap[pp]>=0){
+    //             valid+=1;
+    //         }
+    //         ++pp;
+    //     }
+    //     if ((valid!= validpage[block])&&(block!=currentblock)){
+    //         printf("panic! validpage wrong block: %d valid: %d validpage[block]%d\n",block ,valid,validpage[block]);
+    //         pp+=0;
+
+    //     }
+    // }
     return 0;
 }
 
+int DISK::gcpolicy0(){
+    while(true){
+        if (freeblock[nextgc] ==0 || nextgc==currentblock) {
+            nextgc = (nextgc + 1) % blocknum;
+            continue;
+        }
+        return 0;
+        }
+}
+int DISK::gcpolicy1(){
+    nextgc=0;
+    int minvalid=2048;
+    for (int i=0; i<blocknum;++i){
+        if (validpage[i]<minvalid&&(i!=currentblock)){
+            nextgc=i;
+            minvalid=validpage[i];
+        }
+    }
+    return 0;
+}
 int DISK::needgc() {
     return freeblocknum < 3;
 }

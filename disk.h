@@ -38,7 +38,11 @@ private:
 
     int* bitmap;//ppn to lba  -1 invalid -2 free else valid (lba)
     int* mappingtable;//lba to ppn -1 not assigned
-    bool* freeblock;//1 free 0 used 2 using??
+    int* freeblock;//0 free else timestamp
+    int* validpage;
+    int* blocktime;
+    int* wear;
+    // int* de_bitmap;
 
     int pageperblock;
 
@@ -50,8 +54,9 @@ private:
     int translate(int lba);
     int needgc();
     int gc();
+    int gcpolicy0();//fifo
+    int gcpolicy1();//greedy
     int invalidate(int ppn);
-    bool gcpolicy();
     void updatetable(int lba, int ppn);
 
 

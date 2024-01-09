@@ -56,6 +56,7 @@ int main()
        file >> streamnumber;
        
     //    cout << timestamp << " " << iotype << " " << lba << " " << iosize << streamnumber << endl;
+    
        disk1.io(timestamp, iotype, lba, iosize, streamnumber);
        //disk1.summary();
        //disk1.io(timestamp, iotype, lba, iosize, streamnumber);
