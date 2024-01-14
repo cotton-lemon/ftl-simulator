@@ -22,7 +22,7 @@ DISK::DISK(int logical, int physical, int block, int page) {
     for (int q = 0; q < physicalpages; ++q) {
         bitmap[q] = -2;
     }
-    blocktime = new int[blocknum]{0,};
+    // blocktime = new int[blocknum]{0,};
     wear= new int[blocknum]{0,};
     freeblock = new int[blocknum]{0,};
     // for (int q = 0; q < blocknum; ++q) {
@@ -195,7 +195,7 @@ int DISK::findnext() {
     if (offset < pageperblock) {
         return 0;
     }
-    freeblock[currentblock] = totalwrite;
+    freeblock[currentblock] = totalrequestedwrite;
     // blocktime[currentblock]=totalwrite;
     offset = 0;
     //printf("page per block %d\n", pageperblock);
@@ -235,17 +235,26 @@ int DISK::invalidate(int ppn) {
         exit(1);
     }
     bitmap[ppn] = -1;
-    validpage[ppn/pageperblock]-=1;
+    int block=ppn/pageperblock;
+    validpage[block]-=1;
+    if (block!=currentblock){
+        // freeblock[block]=totalrequestedwrite;
+    }
+
     return 0;
 }
 int DISK::translate(int lba) {
     return mappingtable[lba];
 }
 
+//garbage collection
 int DISK::gc() {
     // printf("gc start===========================================\n");
- 
-    while (needgc()) {
+    totalgc+=1;
+    tmpgc+=1;
+    while (needgc2()) {
+        totalerase+=1;
+        tmperase+=1;
         //printf("while\n");
         // while(true){
         // if (freeblock[nextgc] == 1 || nextgc==currentblock) {
@@ -254,8 +263,13 @@ int DISK::gc() {
         // }
         // break;
         // }
+        //choose policy
         // gcpolicy0();
         gcpolicy1();
+        // gcpolicy2();
+        
+        // gcpolicy3();
+        // gcpolicy_random();
         // printf("gc block : %d\n", nextgc);
         int ppn = nextgc * pageperblock;
         int newppn = 0;
@@ -283,7 +297,6 @@ int DISK::gc() {
         tmpvalid+=validpagenum;
         freeblock[nextgc] = 0;
         wear[nextgc]+=1;
-        tmperase+=1;
         ppn = nextgc * pageperblock;
         freeblocknum++;
         for (int i = 0; i < pageperblock; ++i) {
@@ -294,10 +307,14 @@ int DISK::gc() {
         validpage[nextgc]=0;
         nextgc = (nextgc + 1) % blocknum;
         // nextgc++;
-        if (needgc()){
-            printf("needgc again %d\n",nextgc);
-        }
+        // if (needgc()){
+        //     printf("needgc again %d\n",nextgc);
+        // }
+
+        // printf("valid ratio %.3f\n",(1.*validpagenum)/pageperblock);
     }
+    
+
     // printf("gcend=================================\n");
     // summary();
     //exit(1);
@@ -319,6 +336,7 @@ int DISK::gc() {
     return 0;
 }
 
+//FIFO
 int DISK::gcpolicy0(){
     while(true){
         if (freeblock[nextgc] ==0 || nextgc==currentblock) {
@@ -328,28 +346,81 @@ int DISK::gcpolicy0(){
         return 0;
         }
 }
+//greedy
 int DISK::gcpolicy1(){
     nextgc=0;
     int minvalid=2048;
     for (int i=0; i<blocknum;++i){
-        if (validpage[i]<minvalid&&(i!=currentblock)){
+        if (validpage[i]<minvalid&&(i!=currentblock)&&(freeblock[i]!=0)){
             nextgc=i;
             minvalid=validpage[i];
         }
     }
     return 0;
 }
-int DISK::needgc() {
-    return freeblocknum < 3;
+//Cost benefit
+int DISK::gcpolicy2(){
+    nextgc=0;
+    float maxvalue=0;
+    for (int i=0; i<blocknum;++i){
+        float t=(static_cast<float>(totalrequestedwrite-freeblock[i])*(pageperblock-validpage[i])/(2*validpage[i]));
+        if (t>maxvalue&&(i!=currentblock)&&(freeblock[i]!=0)){
+            nextgc=i;
+            maxvalue=t;
+        }
+    }
+    return 0;
+}
+//costbenefit with log
+int DISK::gcpolicy3(){
+    nextgc=0;
+    float maxvalue=0;
+    for (int i=0; i<blocknum;++i){
+        if (freeblock[i]==0){
+            continue;
+        }
+        // float t=((totalrequestedwrite-freeblock[i])*0.01+(pageperblock-validpage[i]));
+
+        float t=(log(totalrequestedwrite-freeblock[i])*(pageperblock-validpage[i])/(2*validpage[i]));
+        // printf("%d %d\n",totalrequestedwrite-freeblock[i],pageperblock-validpage[i]);
+        if (t>maxvalue&&(i!=currentblock)){
+            nextgc=i;
+            maxvalue=t;
+        }
+    }
+    // exit(1);
+    return 0;
 }
 
+int DISK::gcpolicy_random(){
+      // 시드값을 얻기 위한 random_device 생성.
+  std::random_device rd;
+
+  // random_device 를 통해 난수 생성 엔진을 초기화 한다.
+  std::mt19937 gen(rd());
+
+  // 0 부터 99 까지 균등하게 나타나는 난수열을 생성하기 위해 균등 분포 정의.
+  std::uniform_int_distribution<int> dis(0, blocknum);
+  nextgc=dis(gen);
+  while (freeblock[nextgc]==0 || nextgc==currentblock){
+    nextgc=dis(gen);
+  }
+  return 0;
+}
+int DISK::needgc() {
+    return freeblocknum < 2;
+}
+//ngc
+int DISK::needgc2() {
+    return freeblocknum < 3;
+}
 int DISK::summary() {
     // printf("totalwrite %d requestwrite %d totalerase %d freeblock %d usinglba %d\n", totalwrite, totalrequestedwrite, totalerase, freeblocknum, usinglba);
     // return 0;
     // [Progress: 8GiB] WAF: 1.012, TMP_WAF: 1.024, Utilization: 1.000
 // GROUP 0[2046]: 0.02 (ERASE: 1030)
     printf("[Progress: %d GiB] WAF: %.3f, TMP_WAF: %.3f, Utilization: %.3f\n" ,totalrequestedwrite*pagesize/(1024*1024),1.*totalwrite/totalrequestedwrite,1.*tmpwrite/tmpreqeustedwrite,1.*usinglba/logicalpages);
-    printf("GROUP 0[%d]:%.2f  (ERASE: %d)\n",blocknum-freeblocknum,1.*tmpvalid/(tmperase*pageperblock),tmperase);
+    printf("GROUP 0[%d]:%.6f  (ERASE: %d)\n",blocknum-freeblocknum,1.*tmpvalid/(tmperase*pageperblock),tmperase);
     // tmpwrite=0;
     // tmpreqeustedwrite=0;
     // tmperase=0;
@@ -362,6 +433,12 @@ int DISK::resetsummary(){
     tmpreqeustedwrite=0;
     tmperase=0;
     tmpvalid=0;
+    tmpgc=0;
+    return 0;
+}
+int DISK::summary2(){
+    printf("totalwrite %d requestwrite %d totalerase %d freeblock %d usinglba %d\n", totalwrite, totalrequestedwrite, totalerase, freeblocknum, usinglba);
+    printf("total gc %d tmpgc %d total erase per gc %.3f, tmp %.3f\n",totalgc,tmpgc,static_cast<double>(totalerase)/totalgc,static_cast<double>(tmperase)/tmpgc);
     return 0;
 }
 //class Block {

@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceRoot}/build/out.out",
             "args": [],
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             

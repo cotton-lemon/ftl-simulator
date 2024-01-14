@@ -5,6 +5,12 @@
 #include <stdlib.h>
 #include  <cstdio>
 #include <algorithm>
+
+
+#include <random>
+#include <cmath>
+
+
 using std::cout;
 using std::string;
 using std::ifstream;
@@ -15,6 +21,7 @@ class DISK {
 public:
     int io(string timestamp, int iotype, int lba, int iosize, int streamnumber);
     int summary();
+    int summary2();
     int resetsummary();
     DISK(int logical, int physical, int block, int page);
 
@@ -25,9 +32,11 @@ private:
     int totalrequestedwrite = 0;
     int tmpwrite = 0;
     int tmpreqeustedwrite = 0;
+    int tmpgc=0;
     int tmperase=0;
     long long tmpvalid=0;
     int totalerase = 0;
+    int totalgc=0;
     int freeblocknum;
     int usinglba = 0;//
 
@@ -56,9 +65,15 @@ private:
 
     int translate(int lba);
     int needgc();
+
+    int needgc2();
     int gc();
     int gcpolicy0();//fifo
     int gcpolicy1();//greedy
+    int gcpolicy2();//cost benefit
+    int gcpolicy3();
+    int gcpolicy_random();
+
     int invalidate(int ppn);
     void updatetable(int lba, int ppn);
 

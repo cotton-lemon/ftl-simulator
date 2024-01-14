@@ -67,6 +67,7 @@ int main()
         linenum=0;
         loop++;
         disk1.summary();
+        disk1.summary2();
         // disk1.resetsummary();
        }
        if (linenum%((1<<19)*25)==0){
@@ -88,6 +89,6 @@ int main()
         disk1.io("1", 1, 1, 4096, 0);
     }*/
     disk1.summary();
-    
+    disk1.summary2();
     return 0;
 }
