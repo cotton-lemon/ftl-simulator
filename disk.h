@@ -22,6 +22,7 @@ public:
     int io(string timestamp, int iotype, int lba, int iosize, int streamnumber);
     int summary();
     int summary2();
+    int summary3();
     int resetsummary();
     
     DISK(int logical, int physical, int block, int page,int policynum,int needgc2th);

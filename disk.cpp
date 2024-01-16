@@ -275,6 +275,8 @@ int DISK::gc() {
         // gcpolicy3();
         // gcpolicy_random();
         // printf("gc block : %d\n", nextgc);
+
+        wear[nextgc]+=1;
         int ppn = nextgc * pageperblock;
         int newppn = 0;
         int lba = 0;
@@ -397,13 +399,10 @@ int DISK::gcpolicy3(){
 }
 
 int DISK::gcpolicy_random(){
-      // 시드값을 얻기 위한 random_device 생성.
   std::random_device rd;
 
-  // random_device 를 통해 난수 생성 엔진을 초기화 한다.
   std::mt19937 gen(rd());
 
-  // 0 부터 99 까지 균등하게 나타나는 난수열을 생성하기 위해 균등 분포 정의.
   std::uniform_int_distribution<int> dis(0, blocknum);
   nextgc=dis(gen);
   while (freeblock[nextgc]==0 || nextgc==currentblock){
@@ -443,6 +442,12 @@ int DISK::resetsummary(){
 int DISK::summary2(){
     printf("totalwrite %d requestwrite %d totalerase %d freeblock %d usinglba %d\n", totalwrite, totalrequestedwrite, totalerase, freeblocknum, usinglba);
     printf("total gc %d tmpgc %d total erase per gc %.3f, tmp %.3f\n",totalgc,tmpgc,static_cast<double>(totalerase)/totalgc,static_cast<double>(tmperase)/tmpgc);
+    return 0;
+}
+int DISK::summary3(){
+    for (int i=0; i<blocknum;++i){
+        cout<< wear[i]<<' ';
+    }
     return 0;
 }
 //class Block {

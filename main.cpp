@@ -4,7 +4,6 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-    string line;
     ifstream file("/home/lemonos22/tlc/test-fio-small");
     if (file.fail()){
         return -1;
@@ -78,5 +77,9 @@ int main(int argc, char* argv[])
     }*/
     disk1.summary();
     disk1.summary2();
+    // disk1.summary3();
     return 0;
 }
+
+//todo freeblock queue
+//page 단위 age
