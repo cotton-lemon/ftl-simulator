@@ -3,7 +3,7 @@
 #include <string>
 #include <sstream>
 #include <stdlib.h>
-#include  <cstdio>
+#include <cstdio>
 #include <algorithm>
 
 
@@ -23,7 +23,8 @@ public:
     int summary();
     int summary2();
     int resetsummary();
-    DISK(int logical, int physical, int block, int page);
+    
+    DISK(int logical, int physical, int block, int page,int policynum,int needgc2th);
 
 private:
 
@@ -44,6 +45,8 @@ private:
     int physicalsize;//GiB
     int blocksize;//MiB
     int pagesize;//KiB
+    int policy=1;
+    int needgc2threshold=3;
 
     int logicalpages;//# of logical page
     int physicalpages;//# of physical page
@@ -52,7 +55,7 @@ private:
     int* mappingtable;//lba to ppn -1 not assigned
     int* freeblock;//0 free else timestamp
     int* validpage;
-    int* blocktime;
+
     int* wear;
     // int* de_bitmap;
 
@@ -68,6 +71,7 @@ private:
 
     int needgc2();
     int gc();
+    int (DISK::*qqq)();
     int gcpolicy0();//fifo
     int gcpolicy1();//greedy
     int gcpolicy2();//cost benefit

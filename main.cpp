@@ -1,24 +1,8 @@
-// ftl.cpp : 이 파일에는 'main' 함수가 포함됩니다. 거기서 프로그램 실행이 시작되고 종료됩니다.
-//
-
-//#include <iostream>
-//#include <fstream>
-//#include <string>
-//#include <sstream>
-//#include <stdlib.h>
-//#include  <cstdio>
-//using std::cout;
-//using std::string;
-//using std::ifstream;
-//using std::endl;
-//using namespace std;
-
-
 #include "disk.h"
 
 using namespace std;
 
-int main()
+int main(int argc, char* argv[])
 {
     string line;
     ifstream file("/home/lemonos22/tlc/test-fio-small");
@@ -28,6 +12,12 @@ int main()
     else{
         printf("succed");
     }
+    int needgcth=3;
+    cout<<"argc: "<<argc<<endl;
+    if (argc>1){
+        needgcth=stoi(argv[1]);
+        printf("need gc2 threshold %d\n",needgcth);
+    }
     //stringstream ss;
 
     int logical = 8;//GB
@@ -36,7 +26,7 @@ int main()
     int blocksize = 4;//MB
     int pagesize = 4;//KB
 
-    DISK disk1(8, 8, 4 , 4 );
+    DISK disk1(8, 8, 4 , 4 ,1,needgcth);
     //DISK disk1(4, 4, 1, 1);
 
 
@@ -58,9 +48,6 @@ int main()
     //    cout << timestamp << " " << iotype << " " << lba << " " << iosize << streamnumber << endl;
     
        disk1.io(timestamp, iotype, lba, iosize, streamnumber);
-       //disk1.summary();
-       //disk1.io(timestamp, iotype, lba, iosize, streamnumber);
-       //disk1.summary();
        linenum++;
        if (linenum%(1<<21)==0){
         printf("loop %d\n",loop);
@@ -73,6 +60,7 @@ int main()
        if (linenum%((1<<19)*25)==0){
         disk1.resetsummary();
        }
+
     }
     printf("linenum %d loop %d\n",linenum,loop);
     // for (int j = 0; j < 5; ++j) {

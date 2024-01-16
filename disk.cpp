@@ -2,11 +2,17 @@
 
 
 //todo validpage 관리
-DISK::DISK(int logical, int physical, int block, int page) {
+DISK::DISK(int logical, int physical, int block, int page,int policynum,int needgc2th) {
     logicalsize = logical;
     physicalsize = physical;
     blocksize = block;
     pagesize = page;
+    policy=policynum;
+    needgc2threshold=needgc2th;
+    // qqq=&(gcpolicy0);
+
+
+
     pageperblock = block * 1024 / page;
     logicalpages = 1953125 * logical / pagesize / 2;//GB/KiB
     physicalpages = 1024 * 1024 * physical / pagesize;
@@ -110,10 +116,7 @@ int DISK::write(int lba, int iosize) {
         printf("panic iosize");
     }
     while (iosize > 0) {
-
-        //totalwrite++;
         totalrequestedwrite++;
-        // tmpwrite++;
         tmpreqeustedwrite++;
         
         int ppn = translate(lba);
@@ -238,7 +241,7 @@ int DISK::invalidate(int ppn) {
     int block=ppn/pageperblock;
     validpage[block]-=1;
     if (block!=currentblock){
-        // freeblock[block]=totalrequestedwrite;
+        // freeblock[block]=totalrequestedwrite;//updatetime stamp
     }
 
     return 0;
@@ -264,8 +267,9 @@ int DISK::gc() {
         // break;
         // }
         //choose policy
-        // gcpolicy0();
-        gcpolicy1();
+        // gcpolicy();
+        gcpolicy0();
+        // gcpolicy1();
         // gcpolicy2();
         
         // gcpolicy3();
@@ -412,7 +416,7 @@ int DISK::needgc() {
 }
 //ngc
 int DISK::needgc2() {
-    return freeblocknum < 3;
+    return freeblocknum < needgc2threshold;
 }
 int DISK::summary() {
     // printf("totalwrite %d requestwrite %d totalerase %d freeblock %d usinglba %d\n", totalwrite, totalrequestedwrite, totalerase, freeblocknum, usinglba);
