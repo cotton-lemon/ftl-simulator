@@ -1,7 +1,6 @@
 #include "disk.h"
 
 
-//todo validpage 관리
 DISK::DISK(int logical, int physical, int block, int page,int policynum,int needgc2th) {
     logicalsize = logical;
     physicalsize = physical;
@@ -34,6 +33,9 @@ DISK::DISK(int logical, int physical, int block, int page,int policynum,int need
     // for (int q = 0; q < blocknum; ++q) {
     //     freeblock[q] = 1;
     // }
+    for(int i=1;i<blocknum;++i){
+        freeblockqueue.push(i);
+    }
     freeblocknum = blocknum;
     currentblock = 0;
     offset = 0;
@@ -203,6 +205,16 @@ int DISK::findnext() {
     offset = 0;
     //printf("page per block %d\n", pageperblock);
     // printf("finding new block %d\n", currentblock);
+    #if enable_freeblock_queue ==1
+
+    currentblock=freeblockqueue.front();
+    freeblockqueue.pop();
+    if(freeblock[currentblock]!=0){
+        printf("panic! findnext fail");
+        exit(1);
+    }
+    return 0;
+    #endif
     for (int i = 0; i < physicalpages; ++i) {
         currentblock = (currentblock + 1) % blocknum;
         if (freeblock[currentblock] == 0) {
@@ -268,9 +280,9 @@ int DISK::gc() {
         // }
         //choose policy
         // gcpolicy();
-        gcpolicy0();
+        // gcpolicy0();
         // gcpolicy1();
-        // gcpolicy2();
+        gcpolicy2();
         
         // gcpolicy3();
         // gcpolicy_random();
@@ -310,6 +322,9 @@ int DISK::gc() {
             ppn++;
         }
 
+    # if enable_freeblock_queue==1
+        freeblockqueue.push(nextgc);
+    # endif
         validpage[nextgc]=0;
         nextgc = (nextgc + 1) % blocknum;
         // nextgc++;
@@ -369,7 +384,10 @@ int DISK::gcpolicy2(){
     nextgc=0;
     float maxvalue=0;
     for (int i=0; i<blocknum;++i){
-        float t=(static_cast<float>(totalrequestedwrite-freeblock[i])*(pageperblock-validpage[i])/(2*validpage[i]));
+        float t=(static_cast<float>(totalrequestedwrite-freeblock[i])*static_cast<float>(pageperblock-validpage[i])/(2*validpage[i]));
+        // if (t==maxvalue){
+        //     printf("same maxvalue\n");
+        // }
         if (t>maxvalue&&(i!=currentblock)&&(freeblock[i]!=0)){
             nextgc=i;
             maxvalue=t;

@@ -4,6 +4,9 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
+    #if enable_freeblock_queue==1
+    printf("enabled queue\n");
+    #endif
     ifstream file("/home/lemonos22/tlc/test-fio-small");
     if (file.fail()){
         return -1;
@@ -77,7 +80,7 @@ int main(int argc, char* argv[])
     }*/
     disk1.summary();
     disk1.summary2();
-    // disk1.summary3();
+    disk1.summary3();
     return 0;
 }
 

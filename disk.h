@@ -5,12 +5,12 @@
 #include <stdlib.h>
 #include <cstdio>
 #include <algorithm>
-
+#include <queue>
 
 #include <random>
 #include <cmath>
 
-
+#define enable_freeblock_queue 0
 using std::cout;
 using std::string;
 using std::ifstream;
@@ -59,6 +59,7 @@ private:
 
     int* wear;
     // int* de_bitmap;
+    queue<int> freeblockqueue;
 
     int pageperblock;
 
