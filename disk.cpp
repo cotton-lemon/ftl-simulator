@@ -303,7 +303,9 @@ int DISK::gc() {
         // gcpolicy3();
         // gcpolicy_random();
         // printf("gc block : %d\n", nextgc);
-
+        #if GC_WITH_STREAM ==1
+        currentstream=streamnum[nextgc];
+        #endif
         wear[nextgc]+=1;
         int ppn = nextgc * pageperblock;
         int newppn = 0;

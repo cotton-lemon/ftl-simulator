@@ -12,6 +12,7 @@
 
 // #define enable_freeblock_queue 1
 #define MAX_STREAM 5
+#define GC_WITH_STREAM 1
 using std::cout;
 using std::string;
 using std::ifstream;
