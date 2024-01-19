@@ -10,7 +10,8 @@
 #include <random>
 #include <cmath>
 
-#define enable_freeblock_queue 0
+// #define enable_freeblock_queue 1
+#define MAX_STREAM 5
 using std::cout;
 using std::string;
 using std::ifstream;
@@ -53,9 +54,13 @@ private:
     int physicalpages;//# of physical page
 
     int* bitmap;//ppn to lba  -1 invalid -2 free else valid (lba)
+
     int* mappingtable;//lba to ppn -1 not assigned
     int* freeblock;//0 free else timestamp
     int* validpage;
+    int* streamnum;//-1 free else streamnum
+
+    int streamopened[5]{0,0,0,0,0};
 
     int* wear;
     // int* de_bitmap;
@@ -73,7 +78,7 @@ private:
 
     int needgc2();
     int gc();
-    int (DISK::*qqq)();
+    // int (DISK::*qqq)();
     int gcpolicy0();//fifo
     int gcpolicy1();//greedy
     int gcpolicy2();//cost benefit
@@ -83,16 +88,18 @@ private:
     int invalidate(int ppn);
     void updatetable(int lba, int ppn);
 
-
+    int requestedstream=0;
+    int currentstream=0;
 
     int findnext();
+    int findnewpage();
     int blocknum;
     int nextgc = 0;
 
     //int nextfreepage;
 
-    int currentblock;
-    int offset;
+    int currentblock[MAX_STREAM]={0,0,0,0,0};
+    int offset[MAX_STREAM]={0,0,0,0,0};
 
 
     int io_read(int ppn);
