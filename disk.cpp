@@ -42,10 +42,17 @@ DISK::DISK(int logical, int physical, int block, int page,int policynum,int need
     // for (int q = 0; q < blocknum; ++q) {
     //     freeblock[q] = 1;
     // }
-    for(int i=1;i<blocknum;++i){
+    for(int i=0;i<blocknum;++i){
         freeblockqueue.push(i);
     }
     freeblocknum = blocknum;
+
+    for(int q=0; q<MAX_STREAM;++q){
+        currentblock[q]=-1;
+        offset[q]=0;
+        streamopened[q]=0;
+    }
+
     // currentblock = 0;
     // offset = 0;
 }
@@ -53,6 +60,13 @@ DISK::DISK(int logical, int physical, int block, int page,int policynum,int need
 int DISK::io(string timestamp, int iotype, int lba, int iosize, int streamnumber) {
     //printf("lba %d\n", lba);
     //printf("lba:     %d  current block %d offet %d\n", lba,currentblock,offset);
+    // streamnumber=totalrequestedwrite%MAX_STREAM;
+    requestedstream=streamnumber;
+    currentstream=streamnumber;
+    if (streamopened[streamnumber]==0){
+        findnewblock();
+        streamopened[streamnumber]=1;
+    }
     if (lba > logicalpages) {
         printf("wrong lba\n");
         exit(1);
@@ -167,11 +181,11 @@ int DISK::_rwrite(int lba) {//write and update mappingtable and find next
     //cout << "offset " << offset << endl;
 
     validpage[currentblock[currentstream]]+=1;
-    if (offset[currentstream] == 0) {//start usin new block
-        //cout << "offsetset0";
-        freeblocknum -= 1;
-        // freeblock[currentblock] = 0;
-    }
+    // if (offset[currentstream] == 0) {//start usin new block
+    //     //cout << "offsetset0";
+    //     freeblocknum -= 1;
+    //     // freeblock[currentblock] = 0;
+    // }
     int ppn = currentblock[currentstream] * pageperblock + offset[currentstream];
     //io_write(ppn);
 
@@ -208,35 +222,31 @@ int DISK::findnext() {
     freeblock[currentblock[currentstream]] = totalrequestedwrite;
     // blocktime[currentblock]=totalwrite;
     offset[currentstream] = 0;
-    //printf("page per block %d\n", pageperblock);
-    // printf("finding new block %d\n", currentblock);
+    findnewblock();
+    return 0;
+}
 
+int DISK::findnewblock(){
     if(freeblockqueue.empty()){
         printf("panic!freeblockqueue empty\n");
         exit(1);
     }
-    currentblock[currentstream]=freeblockqueue.front();
+
+    int nextblock=freeblockqueue.front();
+    // printf("new block %d\n",nextblock);
+    // if (nextblock==1){
+    //     printf("1\n");
+    // }
+
     freeblockqueue.pop();
-    if(freeblock[currentblock[currentstream]]!=0){
+    if(freeblock[nextblock]!=0){
         printf("panic! findnext fail");
         exit(1);
     }
+    freeblocknum-=1;
+    currentblock[currentstream]=nextblock;
+    streamnum[nextblock]=currentstream;
     return 0;
-}
-
-int DISK::findnewpage(){
-
-
-    return 0;
-    
-    // for (int i = 0; i < physicalpages; ++i) {
-    //     currentblock[currentstream] = (currentblock[currentstream] + 1) % blocknum;
-    //     if (freeblock[currentblock[currentstream]] == 0) {
-    //         // printf("using new block %d\n", currentblock);
-    //         return 0;
-    //     }
-    // }
-    return 1;
 }
 
 void DISK::updatetable(int lba, int ppn) {
@@ -280,22 +290,15 @@ int DISK::gc() {
     // printf("gc start===========================================\n");
     totalgc+=1;
     tmpgc+=1;
+    currentstream=0;
     while (needgc2()) {
         totalerase+=1;
         tmperase+=1;
-        //printf("while\n");
-        // while(true){
-        // if (freeblock[nextgc] == 1 || nextgc==currentblock) {
-        //     nextgc = (nextgc + 1) % blocknum;
-        //     continue;
-        // }
-        // break;
-        // }
         //choose policy
         // gcpolicy();
         // gcpolicy0();
-        gcpolicy1();
-        // gcpolicy2();
+        // gcpolicy1();
+        gcpolicy2();
         
         // gcpolicy3();
         // gcpolicy_random();
@@ -313,11 +316,6 @@ int DISK::gc() {
                 //io_read(ppn);
                 newppn=_rwrite(lba);
                 updatetable(lba, newppn);
-                
-                // if (findnext() < 0) {
-                //     printf("panic gc findnext\n");
-                //     exit(1);
-                // }
             }
             ppn++;
         }
@@ -335,16 +333,14 @@ int DISK::gc() {
             ppn++;
         }
         freeblockqueue.push(nextgc);
+        streamnum[nextgc]=-1;
         validpage[nextgc]=0;
         nextgc = (nextgc + 1) % blocknum;
-        // nextgc++;
-        // if (needgc()){
-        //     printf("needgc again %d\n",nextgc);
-        // }
+
 
         // printf("valid ratio %.3f\n",(1.*validpagenum)/pageperblock);
     }
-    
+    currentstream=requestedstream;
 
     // printf("gcend=================================\n");
     // summary();
@@ -394,6 +390,10 @@ int DISK::gcpolicy1(){
     nextgc=0;
     int minvalid=2048;
     for (int i=0; i<blocknum;++i){
+        if(i==1){
+            int a;
+            a=1;
+        }
         if (validpage[i]<minvalid&&(freeblock[i]!=0)){
             int flag=0;
             for (int q=0; q<MAX_STREAM;++q){

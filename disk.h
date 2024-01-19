@@ -58,9 +58,9 @@ private:
     int* mappingtable;//lba to ppn -1 not assigned
     int* freeblock;//0 free else timestamp
     int* validpage;
-    int* streamnum;//-1 free else streamnum
+    int* streamnum;//-1 free else streamnum//필요한가?
 
-    int streamopened[5]{0,0,0,0,0};
+    
 
     int* wear;
     // int* de_bitmap;
@@ -92,15 +92,15 @@ private:
     int currentstream=0;
 
     int findnext();
-    int findnewpage();
+    int findnewblock();
     int blocknum;
     int nextgc = 0;
 
     //int nextfreepage;
 
-    int currentblock[MAX_STREAM]={0,0,0,0,0};
-    int offset[MAX_STREAM]={0,0,0,0,0};
-
+    int currentblock[MAX_STREAM];
+    int offset[MAX_STREAM];
+    int streamopened[MAX_STREAM];
 
     int io_read(int ppn);
     int io_write(int ppn);
