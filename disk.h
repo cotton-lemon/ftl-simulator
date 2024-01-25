@@ -10,9 +10,22 @@
 #include <random>
 #include <cmath>
 
-// #define enable_freeblock_queue 1
+
+// #define enable_freeblock_queue 1//only queue version supported
 #define MAX_STREAM 5
-#define GC_WITH_STREAM 1
+// #define ENABLE_MULTI_STREAM 1
+// #define GC_WITH_STREAM 1
+
+#ifdef GLO
+extern int ENABLE_MULTI_STREAM;
+extern int GC_WITH_STREAM;
+#endif
+
+#ifndef GLO
+int ENABLE_MULTI_STREAM =1;
+int GC_WITH_STREAM=0;
+#endif
+
 using std::cout;
 using std::string;
 using std::ifstream;

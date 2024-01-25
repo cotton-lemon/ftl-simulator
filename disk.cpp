@@ -61,6 +61,11 @@ int DISK::io(string timestamp, int iotype, int lba, int iosize, int streamnumber
     //printf("lba %d\n", lba);
     //printf("lba:     %d  current block %d offet %d\n", lba,currentblock,offset);
     // streamnumber=totalrequestedwrite%MAX_STREAM;
+
+    if(ENABLE_MULTI_STREAM==0){
+        streamnumber=0;
+    }
+    streamnumber=0;
     requestedstream=streamnumber;
     currentstream=streamnumber;
     if (streamopened[streamnumber]==0){
@@ -298,14 +303,14 @@ int DISK::gc() {
         // gcpolicy();
         // gcpolicy0();
         // gcpolicy1();
-        gcpolicy2();
+        // gcpolicy2();
         
         // gcpolicy3();
-        // gcpolicy_random();
+        gcpolicy_random();
         // printf("gc block : %d\n", nextgc);
-        #if GC_WITH_STREAM ==1
-        currentstream=streamnum[nextgc];
-        #endif
+        if (GC_WITH_STREAM==1){
+            currentstream=streamnum[nextgc];
+        }
         wear[nextgc]+=1;
         int ppn = nextgc * pageperblock;
         int newppn = 0;
@@ -392,10 +397,10 @@ int DISK::gcpolicy1(){
     nextgc=0;
     int minvalid=2048;
     for (int i=0; i<blocknum;++i){
-        if(i==1){
-            int a;
-            a=1;
-        }
+        // if(i==1){
+        //     int a;
+        //     a=1;
+        // }
         if (validpage[i]<minvalid&&(freeblock[i]!=0)){
             int flag=0;
             for (int q=0; q<MAX_STREAM;++q){

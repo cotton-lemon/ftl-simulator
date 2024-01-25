@@ -1,13 +1,11 @@
+#define GLO
 #include "disk.h"
 
 using namespace std;
 
 int main(int argc, char* argv[])
 {
-    #if enable_freeblock_queue==1
-    printf("enabled queue\n");
-    #endif
-    ifstream file("/home/lemonos22/tlc/test-fio-small");
+    ifstream file("/home/lemonos22/tlc/test-fio-small_stream");
     if (file.fail()){
         return -1;
     }
@@ -18,8 +16,18 @@ int main(int argc, char* argv[])
     cout<<"argc: "<<argc<<endl;
     if (argc>1){
         needgcth=stoi(argv[1]);
-        printf("need gc2 threshold %d\n",needgcth);
+
     }
+    if (argc>2){
+        ENABLE_MULTI_STREAM=stoi(argv[2]);
+    }
+    if (argc>3){
+        GC_WITH_STREAM=stoi(argv[3]);
+    }
+    printf("need gc2 threshold %d\n",needgcth);
+    printf("enable multi stream %d\n",ENABLE_MULTI_STREAM);
+    printf(" gc with stream %d ]n",GC_WITH_STREAM);
+    
     //stringstream ss;
 
     int logical = 8;//GB
@@ -48,7 +56,9 @@ int main(int argc, char* argv[])
        file >> streamnumber;
        
     //    cout << timestamp << " " << iotype << " " << lba << " " << iosize << streamnumber << endl;
-    
+        if (ENABLE_MULTI_STREAM==0){
+            streamnumber=0;
+        }
        disk1.io(timestamp, iotype, lba, iosize, streamnumber);
        linenum++;
        if (linenum%(1<<21)==0){
